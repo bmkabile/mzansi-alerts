@@ -1,24 +1,24 @@
 import React, { useEffect, useRef } from 'react';
 import { Alert, Location, AlertType } from '../types';
 import { ALERT_TYPE_DETAILS, SA_WARDS_GEOJSON, MOCK_COUNCILORS } from '../constants';
-// FIX: Import `FeatureGroup` and `Layer` to make them available for the module augmentation below, resolving TypeScript errors.
+// FIX: Import FeatureGroup and Layer to make Leaflet types available for module augmentation, which resolves all three TypeScript errors.
 import L, { FeatureGroup, Layer } from 'leaflet';
 import 'leaflet.markercluster';
 import { NavigationIcon, PlusIcon, MinusIcon } from './Icons';
 import MapFilters from './MapFilters';
 import { timeAgo } from '../utils';
 
-// FIX: Manually declare leaflet.markercluster types to fix TypeScript errors.
-// This is sometimes necessary if module augmentation isn't picked up automatically by the build setup.
+// Correctly augment the 'leaflet' module to add types for the markercluster plugin.
+// This ensures that TypeScript understands that L.markerClusterGroup and L.MarkerClusterGroup exist.
 declare module 'leaflet' {
-  // FIX: Update manual type declaration for 'leaflet.MarkerClusterGroup' to include the 'addLayers' method.
-  export class MarkerClusterGroup extends FeatureGroup {
-    addLayers(layers: Layer[]): this;
-  }
+  namespace L {
+    class MarkerClusterGroup extends FeatureGroup {
+      addLayers(layers: Layer[]): this;
+    }
 
-  // Using `any` for options since no options are passed and to keep the fix minimal.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  export function markerClusterGroup(options?: any): MarkerClusterGroup;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function markerClusterGroup(options?: any): MarkerClusterGroup;
+  }
 }
 
 interface MapViewProps {

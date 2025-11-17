@@ -1,20 +1,25 @@
 import React from 'react';
-import { Alert, Councilor } from '../types';
+import { Alert, Councilor, EskomStatus } from '../types';
 import AlertCard from './AlertCard';
 import CouncilorInfo from './CouncilorInfo';
 import FeedAd from './FeedAd';
+import LoadsheddingStatus from './LoadsheddingStatus';
 
 interface AlertFeedProps {
   alerts: Alert[];
   onSelectAlert: (alert: Alert) => void;
   councilor: Councilor | null;
+  loadsheddingStatus: EskomStatus | null;
+  isLoadsheddingLoading: boolean;
+  onSetArea: () => void;
 }
 
-const AlertFeed: React.FC<AlertFeedProps> = ({ alerts, onSelectAlert, councilor }) => {
+const AlertFeed: React.FC<AlertFeedProps> = ({ alerts, onSelectAlert, councilor, loadsheddingStatus, isLoadsheddingLoading, onSetArea }) => {
   const showNoAlertsMessage = alerts.length === 0;
 
   return (
     <div className="space-y-3">
+      <LoadsheddingStatus status={loadsheddingStatus} isLoading={isLoadsheddingLoading} onSetArea={onSetArea} />
       {councilor && <CouncilorInfo councilor={councilor} />}
       
       {showNoAlertsMessage ? (

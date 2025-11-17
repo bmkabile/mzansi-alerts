@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Alert, AlertType, Comment, Location, Councilor } from './types';
+import { Alert, AlertType, Comment, Location, Councilor, EskomArea, EskomStatus } from './types';
 import { MOCK_ALERTS, SA_WARDS_GEOJSON, MOCK_COUNCILORS, ALERT_TYPE_DETAILS } from './constants';
 import Header from './components/Header';
 import MapView from './components/MapView';
@@ -8,15 +8,18 @@ import BottomNav from './components/BottomNav';
 import AlertModal from './components/AlertModal';
 import useGeolocation from './hooks/useGeolocation';
 import { getAIWeatherAlert } from './services/geminiService';
+import { getEskomStatus } from './services/eskomService';
 import { WeatherCloudIcon, LoaderIcon, ChevronDownIcon } from './components/Icons';
 import AlertFeed from './components/AlertFeed';
 import NotificationsPanel from './components/NotificationsPanel';
 import { pointInPolygon, haversineDistance, getPendingAlerts, clearPendingAlerts } from './utils';
 import OfflineIndicator from './components/OfflineIndicator';
 import PostAlertModal from './components/PostAlertModal';
+import SettingsModal from './components/SettingsModal';
 
 const PULL_THRESHOLD = 70; // Pixels to pull down to trigger refresh
 const PRIORITY_ALERT_RADIUS_KM = 5; // 5km radius for priority alerts
+const ESKOM_AREA_STORAGE_KEY = 'mzansi-eskom-area';
 
 const App: React.FC = () => {
   const [alerts, setAlerts] = useState<Alert[]>(MOCK_ALERTS);
@@ -32,11 +35,56 @@ const App: React.FC = () => {
   const [showAds, setShowAds] = useState(true);
   const [showPostAlertModal, setShowPostAlertModal] = useState(false);
 
+  // New state for Eskom feature
+  const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [userArea, setUserArea] = useState<EskomArea | null>(null);
+  const [loadsheddingStatus, setLoadsheddingStatus] = useState<EskomStatus | null>(null);
+  const [isLoadsheddingLoading, setIsLoadsheddingLoading] = useState(true);
+
   // State for pull-to-refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullPosition, setPullPosition] = useState(0);
   const touchStartRef = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Load user area from localStorage on initial load
+  useEffect(() => {
+    try {
+        const savedArea = localStorage.getItem(ESKOM_AREA_STORAGE_KEY);
+        if (savedArea) {
+            setUserArea(JSON.parse(savedArea));
+        } else {
+            setIsLoadsheddingLoading(false);
+        }
+    } catch (error) {
+        console.error("Could not load user area from storage", error);
+        setIsLoadsheddingLoading(false);
+    }
+  }, []);
+
+  // Fetch loadshedding status when userArea changes or when coming online
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (userArea && !isOffline) {
+        setIsLoadsheddingLoading(true);
+        const status = await getEskomStatus(userArea.id);
+        setLoadsheddingStatus(status);
+        setIsLoadsheddingLoading(false);
+      } else if (!userArea) {
+        setLoadsheddingStatus(null);
+      }
+    };
+    fetchStatus();
+  }, [userArea, isOffline]);
+
+  const handleSaveArea = (area: EskomArea) => {
+    setUserArea(area);
+    try {
+        localStorage.setItem(ESKOM_AREA_STORAGE_KEY, JSON.stringify(area));
+    } catch (error) {
+        console.error("Could not save user area to storage", error);
+    }
+  };
 
   const syncOfflineAlerts = useCallback(() => {
     const pendingAlerts = getPendingAlerts();
@@ -249,12 +297,13 @@ const App: React.FC = () => {
 
 
   const filteredAlerts = alerts.filter(alert => activeFilters.includes(alert.type));
-  const isOverlayActive = selectedAlert !== null || isNotificationsOpen || isCreateModalOpen || showPostAlertModal;
+  const isOverlayActive = selectedAlert !== null || isNotificationsOpen || isCreateModalOpen || showPostAlertModal || isSettingsOpen;
 
   return (
     <div className="h-screen w-screen flex flex-col font-sans bg-background max-w-md mx-auto shadow-2xl">
       <Header 
         onNotificationsClick={() => setNotificationsOpen(true)}
+        onSettingsClick={() => setSettingsOpen(true)}
         showAds={showAds}
         onGoAdFree={handleGoAdFree}
       />
@@ -330,7 +379,14 @@ const App: React.FC = () => {
           </div>
 
           <div className="px-2 pt-2 pb-24">
-            <AlertFeed alerts={filteredAlerts} onSelectAlert={handleSelectAlert} councilor={councilor} />
+            <AlertFeed 
+                alerts={filteredAlerts} 
+                onSelectAlert={handleSelectAlert} 
+                councilor={councilor} 
+                loadsheddingStatus={loadsheddingStatus}
+                isLoadsheddingLoading={isLoadsheddingLoading}
+                onSetArea={() => setSettingsOpen(true)}
+            />
           </div>
         </div>
       </main>
@@ -366,6 +422,13 @@ const App: React.FC = () => {
       )}
       {showPostAlertModal && (
         <PostAlertModal onClose={() => setShowPostAlertModal(false)} />
+      )}
+      {isSettingsOpen && (
+        <SettingsModal
+            onClose={() => setSettingsOpen(false)}
+            onSaveArea={handleSaveArea}
+            currentArea={userArea}
+        />
       )}
     </div>
   );

@@ -70,3 +70,32 @@ export interface Councilor {
   imageUrl: string;
   contact: string;
 }
+
+// EskomSePush API Types
+export interface EskomArea {
+  id: string;
+  name: string;
+  region: string;
+}
+
+export interface EskomScheduleEvent {
+    end: string;
+    note: string;
+    start: string;
+}
+
+export interface EskomStatus {
+    events: EskomScheduleEvent[];
+    info: {
+        name: string;
+        region: string;
+    };
+    schedule: {
+        days: {
+            date: string;
+            name: string;
+            stages: string[][];
+        }[];
+        source: string;
+    }
+}
