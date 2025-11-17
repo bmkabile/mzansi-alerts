@@ -1,15 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Location, AlertType } from '../types';
 import { ALERT_TYPE_DETAILS, SA_WARDS_GEOJSON, MOCK_COUNCILORS } from '../constants';
-import L, { FeatureGroup, Layer } from 'leaflet';
+// FIX: The complex import below was causing issues with module augmentation. Simplified to `import L from 'leaflet'`.
+import L from 'leaflet';
+import { FeatureGroup, Layer } from 'leaflet';
+
+// HACK: Manually attach the imported Leaflet object to the window.
+// The 'leaflet.markercluster' plugin is not a true ES module and expects 'L' to be a global variable.
+// This ensures the plugin can find and extend the Leaflet object, resolving the "L.markerclusterGroup is not a function" error.
+if (typeof window !== 'undefined') {
+  (window as any).L = L;
+}
+
 import 'leaflet.markercluster';
 import { NavigationIcon, PlusIcon, MinusIcon, LayersIcon } from './Icons';
 import MapFilters from './MapFilters';
 import { timeAgo } from '../utils';
 
-// FIX: The module augmentation was incorrectly nested within a `namespace L`.
-// This caused TypeScript to look for types on `L.L.*`, which is wrong.
-// Augmenting the module directly attaches the new types to the `L` object, resolving the error.
+// Augment the 'leaflet' module to add TypeScript types for the markercluster plugin.
 declare module 'leaflet' {
   class MarkerClusterGroup extends FeatureGroup {
     addLayers(layers: Layer[]): this;
@@ -83,10 +91,16 @@ const MapView: React.FC<MapViewProps> = ({ alerts, onSelectAlert, userLocation, 
         zoomControl: false // Disable default zoom control
       });
 
-      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      const tileLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
         subdomains:['mt0','mt1','mt2','mt3'],
         attribution: '&copy; <a href="https://www.google.com/maps">Google Maps</a> contributors'
-      }).addTo(map);
+      });
+
+      tileLayer.on('tileerror', function() {
+        console.warn('A map tile failed to load. If the map appears blank, please check your network connection.');
+      });
+      
+      tileLayer.addTo(map);
 
       mapRef.current = map;
       

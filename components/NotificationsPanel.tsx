@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Alert, Location } from '../types';
+import { Alert, Location, NotificationSettings } from '../types';
 import { XIcon } from './Icons';
 import AlertCard from './AlertCard';
 import { haversineDistance } from '../utils';
@@ -9,29 +9,34 @@ interface NotificationsPanelProps {
   userLocation: Location | null;
   onClose: () => void;
   onSelectAlert: (alert: Alert) => void;
+  notificationSettings: NotificationSettings;
 }
 
-const MAX_DISTANCE_KM = 5; // 5km radius for "nearby"
 const MAX_AGE_DAYS = 3; // 3 days for "recent"
 
-const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ alerts, userLocation, onClose, onSelectAlert }) => {
+const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ alerts, userLocation, onClose, onSelectAlert, notificationSettings }) => {
   const recentAndNearbyAlerts = useMemo(() => {
     const now = new Date();
     const threeDaysAgo = new Date(now.getTime() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
 
     return alerts.filter(alert => {
+      // Filter out alerts whose type is disabled in settings
+      if (!notificationSettings.enabledAlertTypes.includes(alert.type)) {
+        return false;
+      }
+
       const alertDate = new Date(alert.timestamp);
       const isRecent = alertDate > threeDaysAgo;
       
       let isNearby = false;
       if (userLocation) {
         const distance = haversineDistance(userLocation, alert.location);
-        isNearby = distance <= MAX_DISTANCE_KM;
+        isNearby = distance <= notificationSettings.notificationRadius;
       }
 
       return isRecent || isNearby;
     }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [alerts, userLocation]);
+  }, [alerts, userLocation, notificationSettings]);
   
   const handleCardClick = (alert: Alert) => {
     onSelectAlert(alert);
@@ -48,6 +53,12 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ alerts, userLoc
         </button>
       </div>
 
+      {!notificationSettings.pushEnabled && (
+        <div className="p-3 bg-yellow-100 text-yellow-800 text-sm text-center border-b border-yellow-200">
+          Push notifications are currently disabled.
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-2">
         {recentAndNearbyAlerts.length > 0 ? (
@@ -59,7 +70,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ alerts, userLoc
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 p-8">
             <h3 className="text-lg font-semibold">No Recent or Nearby Alerts</h3>
-            <p className="text-sm">Things are quiet around you!</p>
+            <p className="text-sm">Things are quiet around you, or try adjusting your notification settings.</p>
           </div>
         )}
       </div>

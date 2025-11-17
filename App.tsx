@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Alert, AlertType, Comment, Location, Councilor, EskomArea, EskomStatus } from './types';
+import { Alert, AlertType, Comment, Location, Councilor, EskomArea, EskomStatus, NotificationSettings } from './types';
 import { MOCK_ALERTS, SA_WARDS_GEOJSON, MOCK_COUNCILORS, ALERT_TYPE_DETAILS } from './constants';
 import Header from './components/Header';
 import MapView from './components/MapView';
@@ -20,6 +20,13 @@ import SettingsModal from './components/SettingsModal';
 const PULL_THRESHOLD = 70; // Pixels to pull down to trigger refresh
 const PRIORITY_ALERT_RADIUS_KM = 5; // 5km radius for priority alerts
 const ESKOM_AREA_STORAGE_KEY = 'mzansi-eskom-area';
+const NOTIFICATION_SETTINGS_STORAGE_KEY = 'mzansi-notification-settings';
+
+const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
+  pushEnabled: true,
+  notificationRadius: 5, // Default to 5km
+  enabledAlertTypes: Object.values(AlertType), // All enabled by default
+};
 
 const App: React.FC = () => {
   const [alerts, setAlerts] = useState<Alert[]>(MOCK_ALERTS);
@@ -41,13 +48,16 @@ const App: React.FC = () => {
   const [loadsheddingStatus, setLoadsheddingStatus] = useState<EskomStatus | null>(null);
   const [isLoadsheddingLoading, setIsLoadsheddingLoading] = useState(true);
 
+  // New state for notification settings
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
+
   // State for pull-to-refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullPosition, setPullPosition] = useState(0);
   const touchStartRef = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Load user area from localStorage on initial load
+  // Load user area and notification settings from localStorage on initial load
   useEffect(() => {
     try {
         const savedArea = localStorage.getItem(ESKOM_AREA_STORAGE_KEY);
@@ -56,8 +66,14 @@ const App: React.FC = () => {
         } else {
             setIsLoadsheddingLoading(false);
         }
+        
+        const savedSettings = localStorage.getItem(NOTIFICATION_SETTINGS_STORAGE_KEY);
+        if (savedSettings) {
+            setNotificationSettings(JSON.parse(savedSettings));
+        }
+
     } catch (error) {
-        console.error("Could not load user area from storage", error);
+        console.error("Could not load user data from storage", error);
         setIsLoadsheddingLoading(false);
     }
   }, []);
@@ -83,6 +99,15 @@ const App: React.FC = () => {
         localStorage.setItem(ESKOM_AREA_STORAGE_KEY, JSON.stringify(area));
     } catch (error) {
         console.error("Could not save user area to storage", error);
+    }
+  };
+  
+  const handleSaveNotificationSettings = (settings: NotificationSettings) => {
+    setNotificationSettings(settings);
+    try {
+        localStorage.setItem(NOTIFICATION_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+        console.error("Could not save notification settings to storage", error);
     }
   };
 
@@ -414,10 +439,10 @@ const App: React.FC = () => {
       {isNotificationsOpen && (
         <NotificationsPanel
             alerts={alerts}
-            // FIX: Corrected variable name from userLocation to location.
             userLocation={location}
             onClose={() => setNotificationsOpen(false)}
             onSelectAlert={handleSelectAlert}
+            notificationSettings={notificationSettings}
         />
       )}
       {showPostAlertModal && (
@@ -428,6 +453,8 @@ const App: React.FC = () => {
             onClose={() => setSettingsOpen(false)}
             onSaveArea={handleSaveArea}
             currentArea={userArea}
+            currentNotificationSettings={notificationSettings}
+            onSaveNotificationSettings={handleSaveNotificationSettings}
         />
       )}
     </div>

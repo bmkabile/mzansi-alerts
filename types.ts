@@ -99,3 +99,9 @@ export interface EskomStatus {
         source: string;
     }
 }
+
+export interface NotificationSettings {
+  pushEnabled: boolean;
+  notificationRadius: number; // in km
+  enabledAlertTypes: AlertType[];
+}
