@@ -1,0 +1,8 @@
+{
+  "name": "Copy of Copy of Copy of Copy of Copy of Copy of Copy of Mzansi Alerts",
+  "description": "South Africa's hyperlocal safety & civic alert platform. Report incidents, view a live map of alerts, and get hyperlocal weather warnings.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}

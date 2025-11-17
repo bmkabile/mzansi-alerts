@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mzansi Alerts</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#004D40" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#004D40', // Dark Green
+              secondary: '#FFC107', // Amber/Gold
+              accent: '#D32F2F', // Red
+              background: '#F7F7F7',
+              'text-primary': '#1A202C',
+              'text-secondary': '#718096',
+              // Alert specific colors
+              'alert-crime': '#D32F2F',
+              'alert-pothole': '#4A5568',
+              'alert-weather': '#3182CE',
+              'alert-traffic': '#ED8936',
+              'alert-power': '#FFC107',
+              'alert-water': '#0BC5EA',
+              'alert-other': '#805AD5',
+            },
+          },
+        },
+      }
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
+    "leaflet/": "https://aistudiocdn.com/leaflet@^1.9.4/",
+    "leaflet.markercluster/": "https://aistudiocdn.com/leaflet.markercluster@^1.5.3/",
+    "leaflet.markercluster": "https://aistudiocdn.com/leaflet.markercluster@^1.5.3"
+  }
+}
+</script>
+<style>
+  /* This style block is required because Leaflet's JS might look for these images at a relative path */
+  .leaflet-marker-icon, .leaflet-marker-shadow {
+    background-size: 100% 100%;
+  }
+  .leaflet-marker-icon {
+    background-image: url(https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png);
+  }
+  .leaflet-marker-shadow {
+    background-image: url(https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png);
+  }
+  
+  /* Logo Animation */
+  @keyframes ping-slow {
+    75%, 100% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+  }
+  .animate-ping-slow {
+    animation: ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes ping-medium {
+      75%, 100% {
+          transform: scale(2);
+          opacity: 0;
+      }
+  }
+  .animate-ping-medium {
+      animation: ping-medium 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+      animation-delay: 1.5s;
+  }
+
+  /* Filter Animation */
+  @keyframes filter-pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    50% {
+      transform: scale(1.1);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+    }
+  }
+  .animate-filter-pulse {
+    animation: filter-pulse 3s ease-in-out infinite;
+  }
+</style>
+</head>
+  <body class="bg-background">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "short_name": "MzansiAlerts",
+  "name": "Mzansi Alerts",
+  "description": "South Africa's hyperlocal safety & civic alert platform.",
+  "icons": [
+    {
+      "src": "https://www.gstatic.com/images/branding/product/1x/gmd_24dp.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://www.gstatic.com/images/branding/product/1x/gmd_24dp.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/index.html",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#00796B",
+  "background_color": "#F5F5F5"
+}
