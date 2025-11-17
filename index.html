@@ -6,6 +6,7 @@
     <title>Mzansi Alerts</title>
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#004D40" />
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4138474086160535" crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -96,10 +97,26 @@
   .animate-filter-pulse {
     animation: filter-pulse 3s ease-in-out infinite;
   }
+
+  /* Ad-Free Button Animation */
+  @keyframes ad-free-pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+    }
+    70% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+    }
+  }
+  .animate-ad-free-pulse {
+    animation: ad-free-pulse 2.5s infinite;
+  }
 </style>
 </head>
   <body class="bg-background">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
   </body>
 </html>

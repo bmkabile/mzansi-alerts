@@ -1,24 +1,22 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Location, AlertType } from '../types';
 import { ALERT_TYPE_DETAILS, SA_WARDS_GEOJSON, MOCK_COUNCILORS } from '../constants';
-// FIX: Import FeatureGroup and Layer to make Leaflet types available for module augmentation, which resolves all three TypeScript errors.
 import L, { FeatureGroup, Layer } from 'leaflet';
 import 'leaflet.markercluster';
-import { NavigationIcon, PlusIcon, MinusIcon } from './Icons';
+import { NavigationIcon, PlusIcon, MinusIcon, LayersIcon } from './Icons';
 import MapFilters from './MapFilters';
 import { timeAgo } from '../utils';
 
-// Correctly augment the 'leaflet' module to add types for the markercluster plugin.
-// This ensures that TypeScript understands that L.markerClusterGroup and L.MarkerClusterGroup exist.
+// FIX: The module augmentation was incorrectly nested within a `namespace L`.
+// This caused TypeScript to look for types on `L.L.*`, which is wrong.
+// Augmenting the module directly attaches the new types to the `L` object, resolving the error.
 declare module 'leaflet' {
-  namespace L {
-    class MarkerClusterGroup extends FeatureGroup {
-      addLayers(layers: Layer[]): this;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function markerClusterGroup(options?: any): MarkerClusterGroup;
+  class MarkerClusterGroup extends FeatureGroup {
+    addLayers(layers: Layer[]): this;
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function markerClusterGroup(options?: any): MarkerClusterGroup;
 }
 
 interface MapViewProps {
@@ -42,11 +40,26 @@ const ICON_SVG_STRINGS: Record<AlertType, string> = {
   [AlertType.Other]: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`,
 };
 
-// The user provided an API key for Google Maps. While the standard Leaflet
-// tile layer for Google Maps doesn't use a key directly in the URL,
-// we are switching the tile provider to Google Maps as requested.
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBsBaw7mUARNeTnxVygfzX-IKoSpEGjHWc';
-
+const MAP_ADS = [
+  {
+    icon: 'https://picsum.photos/seed/tyre/80/80',
+    brand: "Vuyo's Tyres",
+    tagline: "Pothole-proof your ride! Durable tyres from R499.",
+    cta: "Shop Now"
+  },
+  {
+    icon: 'https://picsum.photos/seed/security/80/80',
+    brand: "Langa's Security",
+    tagline: "24/7 Peace of Mind. Armed response in your area.",
+    cta: "Get Quote"
+  },
+  {
+    icon: 'https://picsum.photos/seed/coffee/80/80',
+    brand: "Sipho's Coffee",
+    tagline: "Your Morning Alert! Grab a coffee on your commute.",
+    cta: "Find Store"
+  }
+];
 
 const MapView: React.FC<MapViewProps> = ({ alerts, onSelectAlert, userLocation, activeFilters, onToggleFilter, isOverlayActive, showAds }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -54,6 +67,12 @@ const MapView: React.FC<MapViewProps> = ({ alerts, onSelectAlert, userLocation, 
   const markerClusterRef = useRef<L.MarkerClusterGroup | null>(null);
   const wardBoundariesRef = useRef<L.GeoJSON | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const trafficLayerRef = useRef<L.TileLayer | null>(null);
+
+  // State for cycling ads
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [adVisible, setAdVisible] = useState(true);
+  const [isTrafficVisible, setIsTrafficVisible] = useState(false);
 
   // Initialize map
   useEffect(() => {
@@ -106,6 +125,21 @@ const MapView: React.FC<MapViewProps> = ({ alerts, onSelectAlert, userLocation, 
         mapRef.current = null;
     }
   }, []);
+
+  // Effect to cycle ads
+  useEffect(() => {
+    if (!showAds) return;
+
+    const adInterval = setInterval(() => {
+      setAdVisible(false); // Start fade-out
+      setTimeout(() => {
+        setCurrentAdIndex(prevIndex => (prevIndex + 1) % MAP_ADS.length);
+        setAdVisible(true); // Start fade-in with new content
+      }, 500); // Wait for fade-out to complete
+    }, 5000); // Change ad every 5 seconds
+
+    return () => clearInterval(adInterval);
+  }, [showAds]);
   
   // Add ward boundaries
   useEffect(() => {
@@ -293,6 +327,28 @@ const MapView: React.FC<MapViewProps> = ({ alerts, onSelectAlert, userLocation, 
 
   }, [alerts, onSelectAlert]);
 
+  // Effect to manage the traffic layer
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (isTrafficVisible) {
+      if (!trafficLayerRef.current) {
+        trafficLayerRef.current = L.tileLayer('https://{s}.google.com/vt/lyrs=traffic&x={x}&y={y}&z={z}', {
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          attribution: '&copy; Google Traffic',
+          opacity: 0.9,
+          zIndex: 5, // Make sure it sits on top of the base map
+        });
+      }
+      map.addLayer(trafficLayerRef.current);
+    } else {
+      if (trafficLayerRef.current) {
+        map.removeLayer(trafficLayerRef.current);
+      }
+    }
+  }, [isTrafficVisible]);
+
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
   const handleRecenter = () => {
@@ -300,6 +356,12 @@ const MapView: React.FC<MapViewProps> = ({ alerts, onSelectAlert, userLocation, 
       mapRef.current?.flyTo([userLocation.lat, userLocation.lng], 14);
     }
   };
+
+  const handleToggleTraffic = () => {
+    setIsTrafficVisible(prev => !prev);
+  };
+  
+  const currentAd = MAP_ADS[currentAdIndex];
 
   return (
     <div className="w-full h-full relative">
@@ -321,18 +383,6 @@ const MapView: React.FC<MapViewProps> = ({ alerts, onSelectAlert, userLocation, 
         }
         .marker-pulse:hover {
           animation-play-state: paused; /* Stop pulsing on hover for easier interaction */
-        }
-
-        /* Ad ticker animation */
-        @keyframes slide-ads {
-            0% { transform: translateX(0%); }
-            100% { transform: translateX(-75%); } /* 3 unique ads, 4 total items */
-        }
-        .ad-content {
-            animation: slide-ads 20s linear infinite;
-        }
-        .ad-content:hover {
-            animation-play-state: paused;
         }
 
         /* Custom styles for the Leaflet tooltip */
@@ -427,6 +477,15 @@ const MapView: React.FC<MapViewProps> = ({ alerts, onSelectAlert, userLocation, 
               <NavigationIcon className="h-5 w-5" />
             </button>
         )}
+        <button
+            onClick={handleToggleTraffic}
+            className={`bg-white/90 backdrop-blur-md p-3 rounded-lg shadow-lg border border-gray-200/50 text-text-primary hover:bg-gray-200/80 transition-all duration-200 ${isTrafficVisible ? '!bg-primary !text-white' : ''}`}
+            aria-label="Toggle live traffic"
+            aria-pressed={isTrafficVisible}
+            title="Toggle Live Traffic"
+        >
+            <LayersIcon className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Map Filters */}
@@ -451,16 +510,16 @@ const MapView: React.FC<MapViewProps> = ({ alerts, onSelectAlert, userLocation, 
             : 'opacity-100 scale-100 pointer-events-auto'
           }`
         }>
-          <div className="bg-gray-200 w-80 max-w-[calc(100vw-2rem)] h-14 rounded-lg shadow-lg border border-gray-300 flex items-center p-1.5 space-x-2">
-            <div className="flex-1 h-full overflow-hidden relative cursor-pointer">
-              <div className="ad-content flex absolute top-0 left-0 w-[400%] h-full items-center">
-                  {/* 3 unique ads, with the first repeated at the end for a seamless loop */}
-                  <span className="w-1/4 flex-shrink-0 text-center text-gray-600 text-sm font-semibold p-2">Vuyo's Tyres - Pothole-proof your ride!</span>
-                  <span className="w-1/4 flex-shrink-0 text-center text-gray-600 text-sm font-semibold p-2">Langa's Security - 24/7 Peace of Mind.</span>
-                  <span className="w-1/4 flex-shrink-0 text-center text-gray-600 text-sm font-semibold p-2">Sipho's Coffee - Your Morning Alert.</span>
-                  <span className="w-1/4 flex-shrink-0 text-center text-gray-600 text-sm font-semibold p-2">Vuyo's Tyres - Pothole-proof your ride!</span>
-              </div>
+          <div className={`bg-white/90 backdrop-blur-md w-80 max-w-[calc(100vw-2rem)] h-20 rounded-lg shadow-lg border border-gray-200/50 flex items-center p-3 cursor-pointer transition-opacity duration-500 ${adVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <img src={currentAd.icon} alt={currentAd.brand} className="w-12 h-12 rounded-md object-cover mr-3" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-gray-500">{currentAd.brand}</p>
+              <p className="text-sm text-text-primary font-medium leading-tight truncate">{currentAd.tagline}</p>
             </div>
+            <button className="bg-primary flex-shrink-0 text-white text-xs font-bold py-2 px-3 rounded-md hover:bg-primary/90 transition-colors ml-2">
+              {currentAd.cta}
+            </button>
+            <div className="absolute top-1 right-1 bg-gray-500 text-white text-[8px] font-bold px-1 rounded-sm">AD</div>
           </div>
         </div>
       )}

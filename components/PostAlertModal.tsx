@@ -23,10 +23,15 @@ const PostAlertModal: React.FC<PostAlertModalProps> = ({ onClose }) => {
         <p className="text-text-secondary mt-2 mb-6">Your alert has been successfully submitted and is now live.</p>
 
         {/* Ad Placeholder */}
-        <div className="w-full bg-gray-100 border border-gray-200 rounded-lg p-4 space-y-2 mb-6">
-            <h3 className="font-bold text-gray-700">Sponsored Content</h3>
-            <p className="text-sm text-gray-600">Protect your home with <span className="font-semibold text-primary">Mzansi Secure</span>. Get 24/7 armed response from just R299/pm.</p>
-            <a href="#" className="text-primary font-bold text-sm hover:underline">Learn More</a>
+        <div className="w-full rounded-lg p-4 space-y-2 mb-6 relative overflow-hidden h-36 flex flex-col justify-end text-white">
+          <img src="https://picsum.photos/seed/house/400/200" alt="Secure home" className="absolute inset-0 w-full h-full object-cover z-0" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent z-10"></div>
+          <div className="relative z-20 text-left">
+            <div className="absolute top-2 left-2 bg-black/50 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">SPONSORED</div>
+            <p className="font-bold">Protect your home with Mzansi Secure.</p>
+            <p className="text-sm font-light">24/7 armed response from just R299/pm.</p>
+            <a href="#" className="mt-1 inline-block bg-secondary text-text-primary font-bold text-xs py-1.5 px-3 rounded-full hover:opacity-90 transition-opacity">Learn More</a>
+          </div>
         </div>
         
         <button 

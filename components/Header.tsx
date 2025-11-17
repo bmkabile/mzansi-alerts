@@ -17,9 +17,9 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsClick, onSettingsClick, 
         {showAds && (
           <button
             onClick={onGoAdFree}
-            className="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors"
+            className="text-xs font-bold bg-secondary text-primary px-3 py-1.5 rounded-full transition-colors shadow-md animate-ad-free-pulse"
           >
-            Ad-Free R10/pm
+            Go Ad-Free
           </button>
         )}
         <button onClick={onSettingsClick} className="relative p-1 hover:bg-white/20 rounded-full">
